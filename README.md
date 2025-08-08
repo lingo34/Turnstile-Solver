@@ -120,20 +120,28 @@ A Python-based Turnstile solver using the patchright library, featuring multi-th
 ---
 
 ### 🐳 Docker Image
-#### Running the Container
-To start the container, use:
-- Change the TZ environment variable and ports to the correct one for yourself:
+#### Running the Container (API-first, no RDP)
+Build and run the API container that starts automatically on port 5000 using Camoufox by default:
+
 ```sh
-docker run -d -p 3389:3389 -p 5000:5000 -e TZ=Asia/Baku --name turnstile_solver theyka/turnstile_solver:latest
+# Build
+docker build -f Docker/Dockerfile.camoufox -t turnstile_solver:camoufox .
+
+# Run
+docker run -d --name turnstile_solver -p 5000:5000 turnstile_solver:camoufox
 ```
 
-#### Connecting to the Container
-1. Use an **RDP client** (like Windows Remote Desktop, Remmina, or FreeRDP)
-2. Connect to `localhost:3389`
-3. Login with the default user:
-   - **Username:** root
-   - **Password:** root
-4. After this, you can start the solver by navigating to the `Turnstile-Solver` folder.
+After the container starts, the API is available at `http://localhost:5000`.
+
+#### Legacy Desktop/RDP Container (optional)
+If you still want an RDP-enabled image:
+
+```sh
+docker build -f Docker/Dockerfile -t turnstile_solver:rdp .
+docker run -d -p 3389:3389 -p 5000:5000 -e TZ=Asia/Baku --name turnstile_solver turnstile_solver:rdp
+```
+
+You can connect via RDP to `localhost:3389` (user `root`, pass `root`), but this is no longer required to start the API. The API starts automatically on port 5000 and defaults to Camoufox.
 
 ---
 

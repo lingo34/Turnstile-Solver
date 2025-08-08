@@ -110,7 +110,7 @@ class TurnstileTester:
             return {}
 
 
-    async def run_api_server(self, debug=False, headless=False, useragent=None, browser_type="chromium", thread=1) -> None:
+    async def run_api_server(self, debug=False, headless=False, useragent=None, browser_type="camoufox", thread=1) -> None:
         """Run the API server with logging."""
         logger.info("Starting API server on http://localhost:5000")
         logger.info("API documentation available at http://localhost:5000/")

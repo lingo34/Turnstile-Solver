@@ -5,8 +5,7 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 ENV TZ=America/New_York
-ENV RUN_API_SOLVER=false
-
+ENV RUN_API_SOLVER=true
 
 RUN apt-get update && \
     apt-get -y upgrade && \
@@ -33,19 +32,20 @@ RUN apt-get update && \
     xfce4-terminal \
     python3-pip \
     ca-certificates \
-    xvfb
-
-RUN apt remove -y light-locker xscreensaver && \
+    xvfb && \
+    apt remove -y light-locker xscreensaver && \
     apt autoremove -y && \
     rm -rf /var/cache/apt /var/lib/apt/lists
 
-RUN apt-get update && \
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt-get install -y ./google-chrome-stable_current_amd64.deb && \
-    rm ./google-chrome-stable_current_amd64.deb
+# Set workdir and copy app
+WORKDIR /app
+COPY requirements.txt /app/
+RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
+COPY . /app
 
-COPY ./run.sh /usr/bin/
+# Copy startup script
+COPY ./Docker/run.sh /usr/bin/run.sh
 RUN chmod +x /usr/bin/run.sh
 
-EXPOSE 3389
+EXPOSE 3389 5000
 ENTRYPOINT ["/usr/bin/run.sh"]
