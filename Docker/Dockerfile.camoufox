@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     wget \
+    xvfb \
+    xauth \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -43,4 +45,4 @@ COPY . /app
 
 EXPOSE 5000
 
-CMD ["bash", "-lc", "python api_solver.py --browser_type camoufox --host 0.0.0.0 --port 5000 --headless True"]
+CMD ["bash", "-lc", "xvfb-run -a python api_solver.py --browser_type camoufox --host 0.0.0.0 --port 5000 --headless False"]
