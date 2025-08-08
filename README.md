@@ -202,3 +202,146 @@ If the CAPTCHA is solved successfully, the server will respond with the followin
 Inspired by [Turnaround](https://github.com/Body-Alhoha/turnaround)
 Original code by [Theyka](https://github.com/Theyka/Turnstile-Solver)
 Changes by [Sexfrance](https://github.com/sexfrance)
+
+---
+
+## Comprehensive Documentation
+
+### Quickstart (Local)
+- Install Python 3.9+
+- Install dependencies and choose a browser (Camoufox recommended):
+  ```bash
+  pip install -r requirements.txt
+  python -m camoufox fetch
+  ```
+- Start API locally:
+  ```bash
+  python api_solver.py --browser_type camoufox --host 0.0.0.0 --port 5000
+  ```
+- Test:
+  ```bash
+  curl 'http://localhost:5000/turnstile?url=https://example.com&sitekey=0x4AAAAAAA'
+  ```
+
+### Browser Options
+- Default: Camoufox (no custom user-agent needed for headful/headless)
+- Chromium/Chrome/Edge via Patchright:
+  ```bash
+  # Examples
+  python -m patchright install chromium
+  python -m patchright install msedge
+  # Chrome on Debian/Ubuntu (if not using Patchright):
+  wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+  apt install -y ./google-chrome-stable_current_amd64.deb
+  rm ./google-chrome-stable_current_amd64.deb
+  ```
+- Note: For non-Camoufox headless, a custom `--useragent` is required.
+
+### API Reference
+- GET `/turnstile`
+  - Query params:
+    - `url` (required)
+    - `sitekey` (required)
+    - `action` (optional)
+    - `cdata` (optional)
+  - Returns: `{ "task_id": "uuid" }` with 202 Accepted on queueing
+- GET `/result`
+  - Query params:
+    - `id` (required, returned by `/turnstile`)
+  - Returns: `{ "value": "<token>", "elapsed_time": <seconds> }` on success or HTTP 422 with `CAPTCHA_FAIL` value
+
+Examples:
+```bash
+# Submit a task
+curl 'http://localhost:5000/turnstile?url=https://example.com&sitekey=0x4AAAAAAA'
+
+# Fetch result
+curl 'http://localhost:5000/result?id=<task_id>'
+```
+
+### Configuration (CLI flags)
+- `--headless` (bool, default False): Run browser headless. For Chromium/Chrome/Edge, a `--useragent` is required if headless.
+- `--useragent` (str, default None): Custom user agent.
+- `--debug` (bool, default False): Extra logging.
+- `--browser_type` (str, default camoufox): One of `chromium`, `chrome`, `msedge`, `camoufox`.
+- `--thread` (int, default 1): Number of concurrent browsers in the pool.
+- `--proxy` (bool, default False): Enable proxy usage (read from `proxies.txt`).
+- `--host` (str, default 127.0.0.1): Bind address.
+- `--port` (int, default 5000): API port.
+
+### Proxies
+- Enable with `--proxy True` and provide `proxies.txt` in the working directory.
+- Supported line formats (one per line):
+  - `http://ip:port`
+  - `socks5://ip:port`
+  - `http:ip:port:username:password`
+  - `socks5:ip:port:username:password`
+
+### Running with Docker (GHCR)
+Images are published to the GitHub Container Registry (GHCR) via CI.
+
+- Pull images:
+  ```bash
+  docker pull ghcr.io/<owner>/<repo>:camoufox   # API-first (recommended)
+  docker pull ghcr.io/<owner>/<repo>:latest     # Alias of camoufox
+  docker pull ghcr.io/<owner>/<repo>:rdp        # Legacy RDP-enabled image
+  ```
+
+- Run API-first (Camoufox):
+  ```bash
+  docker run -d \
+    --name turnstile_solver \
+    -p 5000:5000 \
+    -v $(pwd)/proxies.txt:/app/proxies.txt:ro \
+    -v $(pwd)/results.json:/app/results.json \
+    ghcr.io/<owner>/<repo>:camoufox
+  ```
+  - Starts API automatically on `0.0.0.0:5000`
+  - Contains a virtual display (Xvfb) for GUI needs
+
+- Run RDP image (optional):
+  ```bash
+  docker run -d \
+    --name turnstile_solver_rdp \
+    -p 3389:3389 -p 5000:5000 \
+    -e TZ=UTC \
+    -e RUN_API_SOLVER=true \
+    -v $(pwd)/proxies.txt:/app/proxies.txt:ro \
+    -v $(pwd)/results.json:/app/results.json \
+    ghcr.io/<owner>/<repo>:rdp
+  ```
+  - RDP: connect to `localhost:3389` (user `root`, pass `root`)
+  - API runs automatically via Xvfb; RDP is optional
+
+- Override CLI args (both images):
+  ```bash
+  docker run -d -p 5000:5000 ghcr.io/<owner>/<repo>:camoufox \
+    python api_solver.py --browser_type camoufox --host 0.0.0.0 --port 5000 --thread 2 --proxy True
+  ```
+
+### CI/CD (GitHub Actions → GHCR)
+- On push to `main`/`master`, tags (`v*`, `release-*`), or manual dispatch:
+  - Builds `Docker/Dockerfile.camoufox` (tags: `:camoufox`, `:latest`, `:camoufox-<sha>`)
+  - Builds `Docker/Dockerfile` (tags: `:rdp`, `:rdp-<sha>`)
+- Requires repository Actions workflow permission: “Read and write” to publish packages.
+
+### Networking & Ports
+- API listens on `:5000` in containers; expose/map with `-p 5000:5000`.
+- RDP image also exposes `:3389` for desktop access (optional).
+
+### Data & Persistence
+- `results.json` stores completed tasks; map it as a volume for persistence.
+- `proxies.txt` optional; map read-only if used.
+
+### Troubleshooting
+- Browser fails to launch:
+  - Ensure Camoufox fetched: `python -m camoufox fetch`
+  - In Docker, both images bundle Xvfb for GUI requirements.
+- Headless with Chromium/Chrome/Edge errors:
+  - Provide a `--useragent` or switch to Camoufox.
+- API not reachable in Docker:
+  - Confirm binding to `0.0.0.0` and port mapping `-p 5000:5000`.
+- Proxy errors:
+  - Verify `proxies.txt` format matches the documented formats.
+
+---
