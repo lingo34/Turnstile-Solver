@@ -56,25 +56,21 @@ if [ -n "$TZ" ]; then
     echo $TZ >/etc/timezone
 fi
 
-mkdir -p /root/Desktop
-
-cd /root/Desktop || {
-    echo "Failed to change directory to /root/Desktop"
+# Use application code copied into the image
+cd /app || {
+    echo "Failed to change directory to /app"
     exit 1
 }
-
-git clone https://github.com/Theyka/Turnstile-Solver.git
-cd Turnstile-Solver || {
-    echo "Failed to change directory to Turnstile-Solver"
-    exit 1
-}
-
-pip3 install -r requirements.txt --break-system-packages
 
 trap "stop_xrdp_services" SIGKILL SIGTERM SIGHUP SIGINT EXIT
 start_xrdp_services
 
-if [ "$RUN_API_SOLVER" = "true" ]; then
-    echo "Starting API solver in headful mode..."
-    xvfb-run -a python3 /root/Desktop/Turnstile-Solver/api_solver.py --browser_type chrome --host 0.0.0.0
+# Start API solver by default unless explicitly disabled
+if [ "${RUN_API_SOLVER}" = "false" ]; then
+    echo "RUN_API_SOLVER=false; not starting the API automatically."
+else
+    echo "Ensuring Camoufox browser assets are available..."
+    python3 -m camoufox fetch || true
+    echo "Starting API solver (camoufox, headful via Xvfb) on 0.0.0.0:5000..."
+    exec xvfb-run -a python3 /app/api_solver.py --browser_type camoufox --host 0.0.0.0 --port 5000
 fi
