@@ -69,6 +69,8 @@ start_xrdp_services
 if [ "${RUN_API_SOLVER}" = "false" ]; then
     echo "RUN_API_SOLVER=false; not starting the API automatically."
 else
+    echo "Ensuring Camoufox browser assets are available..."
+    python3 -m camoufox fetch || true
     echo "Starting API solver (camoufox, headless) on 0.0.0.0:5000..."
     exec python3 /app/api_solver.py --browser_type camoufox --host 0.0.0.0 --port 5000 --headless True
 fi
